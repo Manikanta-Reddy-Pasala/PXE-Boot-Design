@@ -1,12 +1,11 @@
 # 10 — Implementation Roadmap
 
-Phased so each phase delivers something testable and de-risks the next. Earlier
-phases stand up the "boot something" path; later phases add the UI, auth, audit, and
-self-healing. A pilot team and a couple of lab machines run alongside from Phase 3.
+- Phased; each phase delivers something testable and de-risks the next
+- Pilot team + lab machines run alongside from Phase 3
 
 ```mermaid
 gantt
-  title Delivery phases (relative, not calendar-bound)
+  title Delivery phases (relative)
   dateFormat X
   axisFormat %s
   section Foundations
@@ -26,58 +25,45 @@ gantt
 ```
 
 ## Phase 0 — Foundations
-- Repo + CI skeleton; provisioning VLAN; supporting VMs/containers.
-- Stand up **snapshotted apt mirror** (aptly/pulp) and the **artifact catalog** store.
-- **Exit:** CI can run; an apt snapshot exists; empty catalog reachable over HTTPS.
+- Repo + CI skeleton; provisioning VLAN; supporting VMs/containers
+- Snapshotted apt mirror (aptly/pulp) + artifact catalog store
+- **Exit:** CI runs; apt snapshot exists; empty catalog reachable over HTTPS
 
 ## Phase 1 — Vanilla image build
-- `debootstrap` + chroot provisioning; initrd overlay-boot logic; squashfs + ISO;
-  manifest/SBOM + signing; qemu smoke-boot + health check in CI.
-- **Exit:** `vanilla-20.04-x.y.z` builds reproducibly, smoke-boots green, lands in catalog.
+- debootstrap + chroot; initrd overlay-boot; squashfs + ISO; manifest/SBOM + signing; qemu smoke-boot
+- **Exit:** vanilla builds reproducibly, smoke-boots green, in catalog
 
 ## Phase 2 — Adaptation build (pilot team)
-- Declarative team spec → delta squashfs on pinned vanilla; merged ISO; provenance +
-  SBOM + signing; smoke-boot merged image.
-- **Exit:** `team-<pilot>-x.y.z` builds from spec, boots vanilla+overlay in a VM.
+- Team spec → delta squashfs on pinned vanilla; merged ISO; provenance + SBOM + signing; smoke-boot
+- **Exit:** team image builds from spec, boots vanilla+overlay in VM
 
 ## Phase 3 — PXE boots vanilla (lab)
-- dnsmasq proxyDHCP + TFTP + iPXE; HTTPS artifact serving; static iPXE script.
-- **Exit:** a lab machine network-boots the vanilla (then pilot) image end to end.
+- dnsmasq proxyDHCP + TFTP + iPXE; HTTPS artifacts; static iPXE script
+- **Exit:** lab machine network-boots vanilla (then pilot) end to end
 
 ## Phase 4 — Control plane + boot decisioning
-- Postgres schema (machines/bindings/images/events/audit); `GET /boot`, `/events`;
-  machine check-in + session tokens; discovery from leases/check-ins; state machine.
-- **Exit:** binding a machine to an image (via API) makes it boot that image; events recorded.
+- Postgres schema; `GET /boot`, `/events`; machine check-in + session tokens; discovery; state machine
+- **Exit:** binding a machine (via API) makes it boot that image; events recorded
 
 ## Phase 5 — Operator UI + AD auth
-- React console: inventory grid, multi-select, pick image+action, provision; live
-  status drawer. OIDC broker federating AD; group→role RBAC enforced server-side.
-- **Exit:** an AD operator logs in and reimages selected lab machines from the UI.
+- React console: inventory, multi-select, pick image+action, provision, live status
+- OIDC broker federating AD; group→role RBAC server-side
+- **Exit:** AD operator logs in and reimages selected lab machines from UI
 
 ## Phase 6 — Logging & auditing
-- Central log stack (Loki/ELK); agent log streaming + persistent log partition; serial
-  capture; immutable audit table mirrored to WORM/SIEM; UI audit + live tail.
-- **Exit:** every action is audited under an AD identity; failed-boot logs survive reboot
-  and are visible in the UI.
+- Central log stack; agent log streaming + persistent partition; serial capture; immutable audit → WORM/SIEM; UI audit + live tail
+- **Exit:** every action audited under AD identity; failed-boot logs survive reboot + visible in UI
 
 ## Phase 7 — Debuggability & retry
-- Retry/rollback/hold policy + backoff + watchdogs; rescue/debug boot target;
-  vanilla-only + previous-version boot options; layer/SBOM diff; canary ring.
-- **Exit:** a deliberately broken image auto-retries, rolls back/parks per policy, and is
-  diagnosable from the UI without touching the machine.
+- Retry/rollback/hold policy + backoff + watchdogs; rescue boot; vanilla-only + previous-version boot; layer/SBOM diff; canary ring
+- **Exit:** broken image auto-retries, rolls back/parks per policy, diagnosable from UI
 
 ## Phase 8 — Security hardening & scale
-- Secure Boot signing chain; checksum-pinned squashfs; Vault provision-time secrets;
-  IPMI/Redfish power + next-boot; CIS baseline; CVE scanning gate; HA for network
-  services; per-rack HTTP caches.
-- **Exit:** hands-off reimage via BMC; signed/verified boot; secrets injected at runtime;
-  ready to widen beyond pilot.
+- Secure Boot signing; checksum-pinned squashfs; Vault provision-time secrets; IPMI/Redfish power; CIS baseline; CVE gate; HA; per-rack caches
+- **Exit:** hands-off BMC reimage; signed/verified boot; secrets at runtime; ready to widen
 
-## Cross-cutting throughout
-- Reproducible builds, IaC for all services, runbooks, and tests (CI smoke-boot is the
-  backbone). Each phase adds to the same repo layout from [docs/03 §3.8](03-iso-build-pipeline.md).
+## Cross-cutting
+- Reproducible builds, IaC, runbooks, tests; CI smoke-boot is the backbone
 
-## Suggested pilot scope to validate the design early
-One pilot team + 2–3 lab servers through Phases 1→5 proves the whole spine
-(two-layer build → PXE → control plane → UI → AD login) before investing in
-Secure Boot, BMC automation, and HA.
+## Suggested pilot
+- 1 team + 2–3 lab servers through Phases 1→5 proves the spine before Secure Boot / BMC / HA

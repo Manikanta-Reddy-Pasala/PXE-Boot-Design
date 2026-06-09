@@ -1,7 +1,5 @@
 # 02 — Architecture Overview
 
-This is the whole system on one page. Deep dives live in docs 03–09.
-
 ## 2.1 Component map
 
 ```mermaid
@@ -58,18 +56,13 @@ flowchart TB
   API -- IPMI/Redfish power+nextboot --> Fleet
 ```
 
-## 2.2 The two planes
+## 2.2 Two planes
 
-- **Build plane** turns source specs into signed image artifacts. It runs in CI,
-  is offline from the fleet, and is the *only* thing that produces images.
-- **Run plane** (control plane + network services + fleet) consumes those
-  artifacts to provision machines. It never builds images; it only selects,
-  serves, boots, observes, and records.
+- **Build plane** — CI only; turns specs into signed images; offline from fleet
+- **Run plane** — control plane + network services + fleet; consumes images, never builds
+- Separation = auditable (image is a fixed input, provisioning is a recorded transaction)
 
-Keeping these separate is what makes the system auditable and debuggable: an
-image is a fixed, signed input; provisioning is a recorded transaction over it.
-
-## 2.3 The two image layers
+## 2.3 Two image layers
 
 ```mermaid
 flowchart LR
@@ -91,12 +84,11 @@ flowchart LR
   AS --> UPPER
 ```
 
-The team layer is a **delta** over a pinned vanilla version. They compose with
-**overlayfs at boot**, and we *also* emit a fully-merged ISO per team for offline
-/ USB use. Independent versioning + signing of each layer is what lets us answer
-"is it vanilla or the team layer that broke?" (see [docs/08](docs/08-debuggability-retry.md)).
+- Team layer = **delta** over a pinned vanilla version
+- Compose via **overlayfs at boot**; also emit merged ISO per team
+- Independent versioning/signing → can tell "vanilla broke" vs "team layer broke"
 
-## 2.4 End-to-end provisioning flow
+## 2.4 Provisioning flow
 
 ```mermaid
 sequenceDiagram
@@ -111,29 +103,26 @@ sequenceDiagram
   participant LOG as Log collector
 
   Op->>UI: Login (OIDC → AD)
-  Op->>UI: Select server(s) + image + action (provision)
-  UI->>API: POST /bindings (audited: who/what/when)
-  API->>IPMI: Set next-boot=PXE, power cycle
+  Op->>UI: Select server(s) + image + action
+  UI->>API: POST /bindings (audited)
+  API->>IPMI: Next-boot=PXE, power cycle
   SRV->>DHCP: DHCP discover (PXE)
   DHCP-->>SRV: boot file = iPXE
-  SRV->>HTTP: GET iPXE bootstrap script
-  SRV->>API: GET /boot?mac&uuid&serial  (check-in)
+  SRV->>HTTP: GET iPXE bootstrap
+  SRV->>API: GET /boot?mac&uuid&serial
   API-->>SRV: iPXE script → boot assigned image
   SRV->>HTTP: GET kernel + initrd + squashfs (verified)
-  SRV->>LOG: stream boot/install progress
-  SRV->>API: report stage transitions + health
-  API-->>UI: live status (WebSocket/SSE)
+  SRV->>LOG: stream progress
+  SRV->>API: report stages + health
+  API-->>UI: live status
   alt healthy
-    API->>API: mark machine provisioned (audited)
+    API->>API: mark provisioned (audited)
   else failure
     API->>API: apply retry/rollback policy
   end
 ```
 
 ## 2.5 Machine state model
-
-The control plane tracks each machine through an explicit state machine so the UI,
-audit, and retry logic all share one source of truth.
 
 ```mermaid
 stateDiagram-v2
@@ -155,19 +144,17 @@ stateDiagram-v2
   Held --> Bound: operator re-assigns
 ```
 
-## 2.6 Technology choices (defaults — see DECISIONS.md)
+## 2.6 Tech choices (defaults — see DECISIONS.md)
 
-| Concern | Default choice | Why |
-| --- | --- | --- |
-| Bootloader | **iPXE** (chainloaded from undionly/snponly) | Scriptable, HTTPS boot, menus, control-plane callback |
-| DHCP strategy | **dnsmasq proxyDHCP** | Coexists with prod DHCP, no IP takeover |
-| Base build | **debootstrap + chroot** (live-build optional) | Reproducible, scriptable, snapshot-friendly |
-| Layer composition | **overlayfs at boot** + merged ISO artifact | True two-layer model, debuggable, fast team builds |
-| apt determinism | **aptly / pulp snapshot mirror** | Reproducible builds, offline, rollback |
-| Control plane API | **FastAPI (Python)** or **Go** | Fast to build, good async + WebSocket support |
-| DB | **Postgres** | Relational state + audit, mature |
-| Operator UI | **React + WebSocket/SSE** | Real-time fleet status |
-| AuthN | **Keycloak/Dex (OIDC) federating AD** | SSO, MFA, keeps AD creds out of the app |
-| Logs | **Loki + Grafana** (or ELK) | Centralized, label by machine/session |
-| Remote power | **IPMI / Redfish** | Hands-off reimage from the UI |
-| Image signing | **Secure Boot + signed kernels + cosign/GPG on artifacts** | Integrity from build to boot |
+- Bootloader — **iPXE** (scriptable, HTTPS, control-plane callback)
+- DHCP — **dnsmasq proxyDHCP** (coexists with prod DHCP)
+- Base build — **debootstrap + chroot** (live-build optional)
+- Layer composition — **overlayfs at boot** + merged ISO
+- apt determinism — **aptly/pulp snapshot mirror**
+- API — **FastAPI (Python)** or **Go**
+- DB — **Postgres**
+- UI — **React + WebSocket/SSE**
+- AuthN — **Keycloak/Dex (OIDC)** federating AD
+- Logs — **Loki + Grafana** (or ELK)
+- Remote power — **IPMI / Redfish**
+- Signing — **Secure Boot + signed kernels + cosign/GPG**
