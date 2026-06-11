@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Saturn ↔ Mars — Design Diagrams</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#10161d; --panel:#161e27; --panel2:#1b2530;
+  --line:#28333f; --ink:#dbe4ec; --dim:#7f8fa0;
+  --saturn:#5ad0e6; --mars:#f08c4a; --ok:#62d98a; --bad:#ff5d5d; --warn:#ffc24d;
+  --mono:'IBM Plex Mono',monospace; --disp:'Space Grotesk',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--disp);font-size:15px;line-height:1.5;padding:28px 20px 80px}
+.wrap{max-width:1180px;margin:0 auto}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:14px;border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:26px}
+h1{font-size:26px;font-weight:700;letter-spacing:.5px}
+h1 .s{color:var(--saturn)} h1 .m{color:var(--mars)}
+.tag{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase}
+h2{font-size:13px;font-family:var(--mono);font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin:38px 0 14px;display:flex;align-items:center;gap:10px}
+h2::after{content:'';flex:1;height:1px;background:var(--line)}
+
+/* toggle */
+.toggle{display:flex;gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;font-family:var(--mono);font-size:12px;margin-left:auto}
+.toggle button{background:transparent;border:0;color:var(--dim);padding:9px 16px;cursor:pointer;font-family:inherit;font-size:inherit;letter-spacing:1px}
+.toggle button.on-ok{background:rgba(98,217,138,.15);color:var(--ok)}
+.toggle button.on-bad{background:rgba(255,93,93,.15);color:var(--bad)}
+
+/* topology */
+.topo{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;overflow-x:auto}
+svg{display:block;min-width:920px;width:100%}
+.zlabel{font-family:var(--mono);font-size:10px;letter-spacing:2px;fill:var(--dim)}
+.node{fill:var(--panel2);stroke:var(--line);rx:8}
+.nlabel{font-family:var(--mono);font-size:11px;font-weight:600;fill:var(--ink)}
+.nsub{font-family:var(--mono);font-size:9px;fill:var(--dim)}
+.flow{stroke:#3b4a5a;stroke-width:1.5;fill:none}
+.zone{fill:none;stroke-dasharray:5 5;rx:12}
+.packet{r:3.5}
+.pk-req{fill:var(--saturn)} .pk-ack{fill:var(--ok)}
+@keyframes dash{to{stroke-dashoffset:-20}}
+.tunnel-line{stroke:var(--ok);stroke-width:2;stroke-dasharray:8 6;animation:dash 1s linear infinite}
+.badge{font-family:var(--mono);font-size:10px;font-weight:600}
+.hidden{display:none}
+.offline .tunnel-line{stroke:var(--bad);animation:none;stroke-dasharray:3 7;opacity:.5}
+.offline .pk{display:none}
+.offline .off-only{display:initial}
+.off-only{display:none}
+@media (prefers-reduced-motion:reduce){.tunnel-line{animation:none}.pk animateMotion{display:none}}
+
+/* legend + status strip */
+.strip{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;font-family:var(--mono);font-size:11px}
+.chip{border:1px solid var(--line);border-radius:6px;padding:6px 12px;background:var(--panel)}
+.chip b{font-weight:600}
+.c-ok{color:var(--ok)} .c-bad{color:var(--bad)} .c-warn{color:var(--warn)} .c-sat{color:var(--saturn)} .c-mars{color:var(--mars)}
+
+/* sequences */
+.seqgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.seqgrid{grid-template-columns:1fr}}
+.seq{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px}
+.seq h3{font-size:15px;font-weight:700;margin-bottom:4px}
+.seq .sub{font-family:var(--mono);font-size:11px;color:var(--dim);margin-bottom:14px}
+.step{display:grid;grid-template-columns:30px 1fr;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);align-items:start}
+.step:last-child{border-bottom:0}
+.step .n{font-family:var(--mono);font-size:11px;color:var(--dim);padding-top:2px}
+.step .who{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:1px;display:inline-block;margin-right:8px;padding:1px 7px;border-radius:4px}
+.w-tp{background:rgba(219,228,236,.1);color:var(--ink)}
+.w-sat{background:rgba(90,208,230,.12);color:var(--saturn)}
+.w-mars{background:rgba(240,140,74,.12);color:var(--mars)}
+.step .txt{font-size:13.5px}
+.step code{font-family:var(--mono);font-size:12px;background:var(--panel2);padding:1px 6px;border-radius:4px;color:var(--warn)}
+.step.fail .txt{color:#f3b9b9}
+
+/* zero buffer panel */
+.zb{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-left:3px solid var(--bad);border-radius:12px;padding:20px 22px}
+.zb h3{font-size:16px;margin-bottom:10px}
+.zb p{font-size:14px;color:#b9c5d1;max-width:74ch;margin-bottom:10px}
+.zb .rule{font-family:var(--mono);font-size:12.5px;color:var(--ink);background:#0c1117;border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-top:8px}
+.zb .rule b{color:var(--bad)}
+.holds{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+@media(max-width:700px){.holds{grid-template-columns:1fr}}
+.hold{border:1px solid var(--line);border-radius:10px;padding:14px;font-family:var(--mono);font-size:12px}
+.hold h4{font-size:11px;letter-spacing:1.5px;margin-bottom:8px}
+.hold ul{list-style:none}
+.hold li{padding:3px 0 3px 18px;position:relative;color:#b9c5d1}
+.hold.yes h4{color:var(--ok)} .hold.no h4{color:var(--bad)}
+.hold.yes li::before{content:'✓';position:absolute;left:0;color:var(--ok)}
+.hold.no li::before{content:'✕';position:absolute;left:0;color:var(--bad)}
+
+/* timeline */
+.tl{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px;overflow-x:auto}
+.tlrow{display:flex;min-width:860px}
+.tev{flex:1;position:relative;padding:0 10px 0 0}
+.tev::before{content:'';position:absolute;top:7px;left:0;right:0;height:2px;background:var(--line)}
+.tev .dot{position:relative;width:14px;height:14px;border-radius:50%;background:var(--bg);border:3px solid var(--dim);margin-bottom:12px}
+.tev .t{font-family:var(--mono);font-size:11px;font-weight:600;margin-bottom:4px}
+.tev .d{font-size:12.5px;color:#b9c5d1;padding-right:12px;max-width:24ch}
+.tev.e-bad .dot{border-color:var(--bad)} .tev.e-bad .t{color:var(--bad)}
+.tev.e-warn .dot{border-color:var(--warn)} .tev.e-warn .t{color:var(--warn)}
+.tev.e-ok .dot{border-color:var(--ok)} .tev.e-ok .t{color:var(--ok)}
+.tev.e-sat .dot{border-color:var(--saturn)} .tev.e-sat .t{color:var(--saturn)}
+footer{margin-top:46px;font-family:var(--mono);font-size:11px;color:var(--dim);border-top:1px solid var(--line);padding-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div>
+    <h1><span class="s">SATURN</span> ↔ <span class="m">MARS</span></h1>
+    <div class="tag">secure relay · outbound-only · zero-persist · zero-buffer</div>
+  </div>
+  <div class="toggle" role="group" aria-label="Simulate Mars state">
+    <button id="btnOn" class="on-ok" onclick="setState(true)">MARS ONLINE</button>
+    <button id="btnOff" onclick="setState(false)">SIMULATE MARS DOWN</button>
+  </div>
+</header>
+
+<h2>Topology</h2>
+<div class="topo">
+<svg id="topoSvg" viewBox="0 0 1140 360" xmlns="http://www.w3.org/2000/svg">
+  <!-- zones -->
+  <rect class="zone" x="8" y="30" width="150" height="300" stroke="#56657a"/>
+  <text class="zlabel" x="20" y="52">THIRD PARTY</text>
+  <rect class="zone" x="180" y="30" width="500" height="300" stroke="#3a8ea3"/>
+  <text class="zlabel" x="192" y="52" fill="#5ad0e6">SATURN · AWS · STATELESS</text>
+  <rect class="zone" x="840" y="30" width="292" height="300" stroke="#a8693a"/>
+  <text class="zlabel" x="852" y="52" fill="#f08c4a">MARS · CUSTOMER DC · SYSTEM OF RECORD</text>
+
+  <!-- third party -->
+  <rect class="node" x="24" y="150" width="118" height="60" rx="8"/>
+  <text class="nlabel" x="36" y="176">Clients</text>
+  <text class="nsub" x="36" y="192">HTTPS requests</text>
+
+  <!-- saturn nodes -->
+  <rect class="node" x="200" y="150" width="120" height="60" rx="8"/>
+  <text class="nlabel" x="212" y="172">Ingress</text>
+  <text class="nsub" x="212" y="188">corr-id inject</text>
+  <text class="nsub" x="212" y="200">UUIDv7</text>
+
+  <rect class="node" x="356" y="150" width="140" height="60" rx="8"/>
+  <text class="nlabel" x="368" y="172">Registry</text>
+  <text class="nsub" x="368" y="188">mars-id → stream</text>
+  <text id="regState" class="badge" x="368" y="202" fill="#62d98a">STATE: ONLINE</text>
+
+  <rect class="node" x="532" y="84" width="128" height="54" rx="8"/>
+  <text class="nlabel" x="544" y="106">GW · tenant A</text>
+  <text class="nsub" x="544" y="122">EIP 52.x.x.10</text>
+  <rect class="node" x="532" y="152" width="128" height="54" rx="8"/>
+  <text class="nlabel" x="544" y="174">GW · tenant B</text>
+  <text class="nsub" x="544" y="190">EIP 52.x.x.11</text>
+  <rect class="node" x="532" y="220" width="128" height="54" rx="8"/>
+  <text class="nlabel" x="544" y="242">GW · tenant N</text>
+  <text class="nsub" x="544" y="258">EIP 52.x.x.1N</text>
+  <text class="nsub" x="532" y="296">1 EIP per Mars · NAT masks DC topology</text>
+
+  <!-- mars nodes -->
+  <rect class="node" x="860" y="92" width="250" height="56" rx="8"/>
+  <text class="nlabel" x="874" y="114">Supervisor</text>
+  <text class="nsub" x="874" y="130">outbound WG + gRPC dial · exp backoff</text>
+  <rect class="node" x="860" y="166" width="250" height="56" rx="8"/>
+  <text class="nlabel" x="874" y="188">Ingest</text>
+  <text class="nsub" x="874" y="204">dedupe(corr-id) → commit → ACK</text>
+  <rect class="node" x="860" y="240" width="250" height="56" rx="8"/>
+  <text class="nlabel" x="874" y="262">Local store · Postgres</text>
+  <text class="nsub" x="874" y="278">audit · retention · authority</text>
+
+  <!-- static flows -->
+  <path class="flow" d="M142 180 H200"/>
+  <path class="flow" d="M320 180 H356"/>
+  <path class="flow" d="M496 180 H532"/>
+  <path class="flow" d="M924 148 V166"/>
+  <path class="flow" d="M924 222 V240"/>
+
+  <!-- tunnel -->
+  <path id="tunnelPath" class="tunnel-line" d="M660 179 C 740 179, 780 120, 860 120"/>
+  <text class="nsub" x="700" y="160">WireGuard · Mars-initiated</text>
+  <text class="nsub" x="700" y="174">mTLS gRPC bidi inside</text>
+
+  <!-- packets (online only) -->
+  <g class="pk">
+    <circle class="packet pk-req"><animateMotion dur="2.4s" repeatCount="indefinite" path="M142 180 L200 180 L320 180 L356 180 L496 180 L532 180 L660 180"/></circle>
+    <circle class="packet pk-req"><animateMotion dur="2.4s" begin="0.6s" repeatCount="indefinite" path="M660 179 C 740 179, 780 120, 860 120"/></circle>
+    <circle class="packet pk-ack"><animateMotion dur="2.4s" begin="1.2s" repeatCount="indefinite" path="M860 120 C 780 120, 740 179, 660 179"/></circle>
+    <circle class="packet pk-ack"><animateMotion dur="2.4s" begin="1.8s" repeatCount="indefinite" path="M660 180 L532 180 L496 180 L356 180 L320 180 L200 180 L142 180"/></circle>
+  </g>
+
+  <!-- offline overlays -->
+  <g class="off-only">
+    <text class="badge" x="735" y="210" fill="#ff5d5d">✕ TUNNEL DOWN ≤10s detect</text>
+    <rect x="196" y="222" width="130" height="26" rx="6" fill="rgba(255,93,93,.12)" stroke="#ff5d5d"/>
+    <text class="badge" x="208" y="239" fill="#ff5d5d">503 · no buffer</text>
+    <text class="badge" x="864" y="320" fill="#ffc24d">supervisor: backoff retry 1s→30s</text>
+  </g>
+</svg>
+</div>
+<div class="strip">
+  <span class="chip"><b class="c-ok">●</b> request / <b class="c-ok">ACK</b> flow</span>
+  <span class="chip"><b class="c-sat">Saturn</b>: RAM-only hop, metadata logs only</span>
+  <span class="chip"><b class="c-mars">Mars</b>: ACK only after fsync commit</span>
+  <span class="chip">Keep-alive: PING 5s / timeout 10s</span>
+  <span class="chip">Inbound to Mars: <b class="c-bad">all blocked</b></span>
+</div>
+
+<h2>Zero-buffer rule — Saturn holds nothing for Mars</h2>
+<div class="zb">
+  <h3>One payload, one hop, one tenant — never a queue</h3>
+  <p>Saturn never accumulates Mars-bound data. There is no queue, no replay buffer, no store-and-forward, no batching across requests. A payload exists in Saturn's RAM only for the duration of a single active hop, and the per-tenant in-flight cap bounds even that. If Mars cannot take the payload <em>right now</em>, the request is rejected immediately — the third party owns the retry, Mars's corr-id dedupe makes the retry safe.</p>
+  <div class="rule">IF registry[mars-id] ≠ ONLINE → <b>reject 503</b>, drop nothing because nothing was held<br>IF in-flight[mars-id] ≥ CAP (default 1) → <b>reject 429</b>, no second payload enters RAM<br>IF stream closes mid-hop → cancel waiter, <b>reject 502</b>, payload freed — not parked</div>
+  <div class="holds">
+    <div class="hold yes">
+      <h4>SATURN MAY HOLD (RAM, metadata)</h4>
+      <ul>
+        <li>corr-id → response waiter (in-flight only)</li>
+        <li>mars-id → stream handle + state</li>
+        <li>disconnect timestamps, health telemetry</li>
+        <li>the one payload currently mid-hop, per tenant cap</li>
+      </ul>
+    </div>
+    <div class="hold no">
+      <h4>SATURN NEVER HOLDS</h4>
+      <ul>
+        <li>queued / pending payloads for an offline Mars</li>
+        <li>multiple buffered payloads per Mars beyond cap</li>
+        <li>payloads on disk, DB, or persistent logs</li>
+        <li>copies for retry, replay, or recovery</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<h2>Sequence — happy path vs Mars down</h2>
+<div class="seqgrid">
+  <div class="seq">
+    <h3 style="color:var(--ok)">Happy path</h3>
+    <div class="sub">Mars ONLINE · payload committed · ACK returned</div>
+    <div class="step"><span class="n">01</span><span class="txt"><span class="who w-tp">3P</span>HTTPS request for tenant <code>mars-A</code></span></div>
+    <div class="step"><span class="n">02</span><span class="txt"><span class="who w-sat">SAT</span>Inject <code>corr-id</code> (UUIDv7) at ingress</span></div>
+    <div class="step"><span class="n">03</span><span class="txt"><span class="who w-sat">SAT</span>Registry lookup → ONLINE · in-flight cap ok → send Envelope on stream</span></div>
+    <div class="step"><span class="n">04</span><span class="txt"><span class="who w-mars">MARS</span>Dedupe check on <code>corr-id</code> (24h window)</span></div>
+    <div class="step"><span class="n">05</span><span class="txt"><span class="who w-mars">MARS</span>Commit to Postgres, <code>fsync</code> confirmed</span></div>
+    <div class="step"><span class="n">06</span><span class="txt"><span class="who w-mars">MARS</span>Send <code>ACK{corr-id}</code> up the stream — only after commit</span></div>
+    <div class="step"><span class="n">07</span><span class="txt"><span class="who w-sat">SAT</span>Complete waiter · free payload from RAM · respond 200</span></div>
+    <div class="step"><span class="n">08</span><span class="txt"><span class="who w-sat">SAT</span>Log metadata only: corr-id, mars-id, size, latency</span></div>
+  </div>
+  <div class="seq">
+    <h3 style="color:var(--bad)">Mars down</h3>
+    <div class="sub">Tunnel lost · fail-fast · zero buffering · alert at 120s</div>
+    <div class="step fail"><span class="n">01</span><span class="txt"><span class="who w-mars">MARS</span>DC link drops — silent failure, no FIN</span></div>
+    <div class="step fail"><span class="n">02</span><span class="txt"><span class="who w-sat">SAT</span>HTTP/2 PING unanswered → dead in ≤10s → registry <code>OFFLINE</code></span></div>
+    <div class="step fail"><span class="n">03</span><span class="txt"><span class="who w-sat">SAT</span>In-flight waiters for that stream canceled → <code>502</code> upstream now, payloads freed</span></div>
+    <div class="step fail"><span class="n">04</span><span class="txt"><span class="who w-tp">3P</span>New requests → instant <code>503</code> + <code>Retry-After</code>. Nothing queued, nothing parked</span></div>
+    <div class="step"><span class="n">05</span><span class="txt"><span class="who w-mars">MARS</span>Supervisor loop: rebuild WG + gRPC, backoff 1s→30s, full jitter</span></div>
+    <div class="step fail"><span class="n">06</span><span class="txt"><span class="who w-sat">SAT</span>Still offline at <code>120s</code> → PagerDuty + Syslog high-priority alert</span></div>
+    <div class="step"><span class="n">07</span><span class="txt"><span class="who w-mars">MARS</span>Reconnects · mTLS SAN validated · registry → <code>ONLINE</code></span></div>
+    <div class="step"><span class="n">08</span><span class="txt"><span class="who w-tp">3P</span>Retries earlier requests · Mars dedupe re-ACKs already-committed corr-ids</span></div>
+  </div>
+</div>
+
+<h2>Mars-down timeline</h2>
+<div class="tl">
+  <div class="tlrow">
+    <div class="tev e-bad"><div class="dot"></div><div class="t">t = 0s</div><div class="d">Mars connectivity lost (power, link, crash)</div></div>
+    <div class="tev e-bad"><div class="dot"></div><div class="t">t ≤ 10s</div><div class="d">PING timeout → registry OFFLINE · in-flight → 502</div></div>
+    <div class="tev e-bad"><div class="dot"></div><div class="t">t ≤ 10s →</div><div class="d">All new requests → 503, fail-fast, zero buffered payloads</div></div>
+    <div class="tev e-warn"><div class="dot"></div><div class="t">t = 120s</div><div class="d">Still down → PagerDuty / Syslog page fires</div></div>
+    <div class="tev e-sat"><div class="dot"></div><div class="t">recovery</div><div class="d">Supervisor re-dials · WG up · mTLS verified · ONLINE</div></div>
+    <div class="tev e-ok"><div class="dot"></div><div class="t">t + ε</div><div class="d">503s stop · 3P retries flow · dedupe absorbs duplicates</div></div>
+  </div>
+</div>
+
+<footer>Saturn ↔ Mars secure communication · companion to saturn-mars-design.md · toggle above simulates failure state</footer>
+</div>
+
+<script>
+function setState(online){
+  document.getElementById('topoSvg').classList.toggle('offline',!online);
+  document.getElementById('btnOn').className=online?'on-ok':'';
+  document.getElementById('btnOff').className=online?'':'on-bad';
+  var r=document.getElementById('regState');
+  r.textContent=online?'STATE: ONLINE':'STATE: OFFLINE';
+  r.setAttribute('fill',online?'#62d98a':'#ff5d5d');
+}
+</script>
+</body>
+</html>
